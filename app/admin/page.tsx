@@ -1,312 +1,160 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 
-export default function AdminWrapper() {
-  const [authorized, setAuthorized] = useState(false);
-  const [password, setPassword] = useState("");
-
-  const handleLogin = () => {
-    if (password === "XDE2026Secure") {
-      setAuthorized(true);
-    } else {
-      alert("Invalid Password");
-    }
-  };
-
-  if (!authorized) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-900">
-        <div className="bg-white p-10 rounded-xl shadow-xl w-96">
-          <h2 className="text-2xl font-bold mb-6 text-red-600 text-center">
-            XDE Admin Access
-          </h2>
-
-          <input
-            type="password"
-            placeholder="Enter Admin Password"
-            className="border p-3 w-full mb-4 rounded"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-          />
-
-          <button
-            onClick={handleLogin}
-            className="bg-red-600 hover:bg-red-700 text-white w-full py-3 rounded font-semibold"
-          >
-            Login
-          </button>
-        </div>
-      </div>
-    );
-  }
-
-  return <AdminDashboard />;
-}
-
-function AdminDashboard() {
-  const [activeTab, setActiveTab] = useState("dashboard");
-  const [shipments, setShipments] = useState<any[]>([]);
-  const [createData, setCreateData] = useState<any>({});
-  const [updateData, setUpdateData] = useState<any>({});
-  const [response, setResponse] = useState("");
+export default function Home() {
+  const [trackingNumber, setTrackingNumber] = useState("");
+  const [shipment, setShipment] = useState<any>(null);
+  const [error, setError] = useState("");
 
   const backend = "https://xde-backend.onrender.com";
 
-  const fetchShipments = async () => {
+  const trackShipment = async () => {
     try {
-      const res = await fetch(`${backend}/all-shipments`);
+      const res = await fetch(`${backend}/track/${trackingNumber}`);
       const data = await res.json();
-      setShipments(data);
+
+      if (!res.ok) {
+        setError("Tracking number not found");
+        setShipment(null);
+      } else {
+        setShipment(data);
+        setError("");
+      }
     } catch (err) {
-      console.log("Error fetching shipments");
+      setError("Server error");
     }
   };
 
-  useEffect(() => {
-    fetchShipments();
-  }, []);
-
-  const handleCreate = async () => {
-    const res = await fetch(`${backend}/create-shipment`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(createData),
-    });
-
-    const data = await res.json();
-    setResponse(JSON.stringify(data, null, 2));
-    fetchShipments();
-  };
-
-  const handleUpdate = async () => {
-    const res = await fetch(
-      `${backend}/update-status/${updateData.trackingNumber}`,
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          status: updateData.status,
-          currentLocation: updateData.currentLocation,
-          message: updateData.message,
-        }),
-      }
-    );
-
-    const data = await res.json();
-    setResponse(JSON.stringify(data, null, 2));
-    fetchShipments();
-  };
-
-  const handleDelete = async (trackingNumber: string) => {
-    await fetch(`${backend}/delete-shipment/${trackingNumber}`, {
-      method: "DELETE",
-    });
-    fetchShipments();
-  };
-
-  const total = shipments.length;
-  const delivered = shipments.filter(s => s.status === "Delivered").length;
-  const transit = shipments.filter(s => s.status === "In Transit").length;
-  const processing = shipments.filter(s => s.status === "Processing").length;
-
   return (
-    <div className="flex min-h-screen bg-gray-100">
+    <div className="bg-gray-100 text-gray-800">
 
-      {/* SIDEBAR */}
-      <aside className="w-64 bg-red-700 text-white p-6">
-        <h1 className="text-2xl font-bold mb-10">XDE Admin</h1>
+      {/* HERO SECTION */}
+      <section className="relative h-[600px] flex items-center justify-center text-white text-center">
+        <img
+          src="https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d?auto=format&fit=crop&w=1600&q=80"
+          alt="Logistics warehouse"
+          className="absolute inset-0 w-full h-full object-cover"
+        />
+        <div className="absolute inset-0 bg-black/60"></div>
 
-        <ul className="space-y-4">
-          <li onClick={() => setActiveTab("dashboard")}
-              className={`cursor-pointer ${activeTab==="dashboard" && "font-bold"}`}>
-            Dashboard
-          </li>
-          <li onClick={() => setActiveTab("create")}
-              className={`cursor-pointer ${activeTab==="create" && "font-bold"}`}>
-            Create Shipment
-          </li>
-          <li onClick={() => setActiveTab("update")}
-              className={`cursor-pointer ${activeTab==="update" && "font-bold"}`}>
-            Update Shipment
-          </li>
-          <li onClick={() => setActiveTab("all")}
-              className={`cursor-pointer ${activeTab==="all" && "font-bold"}`}>
-            All Shipments
-          </li>
-        </ul>
+        <div className="relative z-10 max-w-4xl px-6">
+          <h1 className="text-5xl font-extrabold mb-6">
+            XDE Logistics
+          </h1>
+          <p className="text-xl mb-8">
+            Nationwide Fast & Reliable Delivery Across the World
+          </p>
 
-        <button
-          onClick={() => window.location.reload()}
-          className="mt-10 bg-black text-white px-4 py-2 rounded w-full"
-        >
-          Logout
-        </button>
-      </aside>
-
-      {/* MAIN CONTENT */}
-      <main className="flex-1 p-10">
-
-        {activeTab === "dashboard" && (
-          <div>
-            <h2 className="text-3xl font-bold mb-8 text-red-600">
-              Dashboard Overview
-            </h2>
-
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-              <Metric title="Total Shipments" value={total} />
-              <Metric title="Delivered" value={delivered} />
-              <Metric title="In Transit" value={transit} />
-              <Metric title="Processing" value={processing} />
-            </div>
+          <div className="bg-white p-6 rounded-xl shadow-xl flex flex-col md:flex-row gap-4">
+            <input
+              type="text"
+              placeholder="Enter Tracking Number"
+              className="flex-1 border p-3 rounded text-black"
+              value={trackingNumber}
+              onChange={(e) => setTrackingNumber(e.target.value)}
+            />
+            <button
+              onClick={trackShipment}
+              className="bg-red-600 hover:bg-red-700 text-white px-6 py-3 rounded font-semibold"
+            >
+              Track Package
+            </button>
           </div>
-        )}
 
-        {activeTab === "create" && (
-          <Section title="Create Shipment">
-            <FormInput placeholder="Sender Name"
-              onChange={(v)=>setCreateData({...createData,senderName:v})}/>
-            <FormInput placeholder="Receiver Name"
-              onChange={(v)=>setCreateData({...createData,receiverName:v})}/>
-            <FormInput placeholder="Origin"
-              onChange={(v)=>setCreateData({...createData,origin:v})}/>
-            <FormInput placeholder="Destination"
-              onChange={(v)=>setCreateData({...createData,destination:v})}/>
-            <FormInput placeholder="Current Location"
-              onChange={(v)=>setCreateData({...createData,currentLocation:v})}/>
-            <FormInput type="date"
-              onChange={(v)=>setCreateData({...createData,estimatedDelivery:v})}/>
+          {error && <p className="text-red-300 mt-4">{error}</p>}
+        </div>
+      </section>
 
-            <PrimaryButton onClick={handleCreate}>
-              Create Shipment
-            </PrimaryButton>
-          </Section>
-        )}
+      {/* TRACKING RESULT */}
+      {shipment && (
+        <section className="max-w-5xl mx-auto bg-white p-8 mt-10 rounded-xl shadow">
+          <h2 className="text-2xl font-bold text-red-600 mb-6">
+            Shipment Details
+          </h2>
+          <p><strong>Tracking:</strong> {shipment.trackingNumber}</p>
+          <p><strong>Sender:</strong> {shipment.senderName}</p>
+          <p><strong>Receiver:</strong> {shipment.receiverName}</p>
+          <p><strong>Status:</strong> {shipment.status}</p>
+          <p><strong>Current Location:</strong> {shipment.currentLocation}</p>
+          <p><strong>Estimated Delivery:</strong> {new Date(shipment.estimatedDelivery).toLocaleDateString()}</p>
+        </section>
+      )}
 
-        {activeTab === "update" && (
-          <Section title="Update Shipment">
-            <FormInput placeholder="Tracking Number"
-              onChange={(v)=>setUpdateData({...updateData,trackingNumber:v})}/>
-            <select className="border p-3 w-full rounded mb-4"
-              onChange={(e)=>setUpdateData({...updateData,status:e.target.value})}>
-              <option>Processing</option>
-              <option>In Transit</option>
-              <option>Arrived at Hub</option>
-              <option>Out for Delivery</option>
-              <option>Delivered</option>
-            </select>
-            <FormInput placeholder="Current Location"
-              onChange={(v)=>setUpdateData({...updateData,currentLocation:v})}/>
-            <FormInput placeholder="Status Message"
-              onChange={(v)=>setUpdateData({...updateData,message:v})}/>
-
-            <PrimaryButton onClick={handleUpdate}>
-              Update Shipment
-            </PrimaryButton>
-          </Section>
-        )}
-
-        {activeTab === "all" && (
-          <Section title="All Shipments">
-            <div className="overflow-x-auto">
-              <table className="w-full text-left">
-                <thead className="bg-red-600 text-white">
-                  <tr>
-                    <th className="p-3">Tracking</th>
-                    <th className="p-3">Sender</th>
-                    <th className="p-3">Receiver</th>
-                    <th className="p-3">Status</th>
-                    <th className="p-3">Action</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {shipments.map((s,i)=>(
-                    <tr key={i} className="border-b">
-                      <td className="p-3">{s.trackingNumber}</td>
-                      <td className="p-3">{s.senderName}</td>
-                      <td className="p-3">{s.receiverName}</td>
-                      <td className="p-3">
-                        <StatusBadge status={s.status}/>
-                      </td>
-                      <td className="p-3">
-                        <button
-                          onClick={()=>handleDelete(s.trackingNumber)}
-                          className="bg-red-600 text-white px-3 py-1 rounded"
-                        >
-                          Delete
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </Section>
-        )}
-
-        <div className="bg-black text-green-400 p-6 rounded-xl mt-10">
-          <pre className="text-sm">{response}</pre>
+      {/* SERVICES SECTION */}
+      <section className="py-20 bg-gray-50">
+        <div className="max-w-6xl mx-auto text-center mb-12">
+          <h2 className="text-3xl font-bold text-red-600">Our Services</h2>
+          <p className="text-gray-600 mt-4">
+            Global logistics solutions tailored to your business needs.
+          </p>
         </div>
 
-      </main>
+        <div className="grid md:grid-cols-4 gap-8 max-w-6xl mx-auto px-6">
+          <ServiceCard
+            image="https://images.unsplash.com/photo-1601582589901-1d1a7c5e0b52?auto=format&fit=crop&w=800&q=80"
+            title="Air Freight"
+            desc="Fast international air cargo delivery worldwide."
+          />
+          <ServiceCard
+            image="https://images.unsplash.com/photo-1509395176047-4a66953fd231?auto=format&fit=crop&w=800&q=80"
+            title="Sea Freight"
+            desc="Secure and cost-efficient ocean transportation."
+          />
+          <ServiceCard
+            image="https://images.unsplash.com/photo-1566203092180-2b9c75e3a8f1?auto=format&fit=crop&w=800&q=80"
+            title="Road Transport"
+            desc="Reliable cross-border trucking services."
+          />
+          <ServiceCard
+            image="https://images.unsplash.com/photo-1581091870627-3e7c1fbaad8c?auto=format&fit=crop&w=800&q=80"
+            title="Warehousing"
+            desc="Secure storage and inventory management."
+          />
+        </div>
+      </section>
+
+      {/* WHY CHOOSE US */}
+      <section className="py-20 bg-white text-center">
+        <h2 className="text-3xl font-bold text-red-600 mb-10">
+          Why Choose XDE Logistics?
+        </h2>
+
+        <div className="grid md:grid-cols-3 gap-10 max-w-6xl mx-auto px-6">
+          <Feature title="Global Network" desc="Operating across 120+ countries worldwide." />
+          <Feature title="24/7 Support" desc="Dedicated customer service team ready anytime." />
+          <Feature title="Secure & Reliable" desc="Advanced tracking and secure handling systems." />
+        </div>
+      </section>
+
+      {/* FOOTER */}
+      <footer className="bg-gray-900 text-white py-8 text-center">
+        <p>© 2015 XDE Logistics Group. All rights reserved.</p>
+      </footer>
+
     </div>
   );
 }
 
 /* COMPONENTS */
 
-function Section({title,children}:any){
-  return(
-    <div className="bg-white p-8 rounded-xl shadow mb-10">
-      <h3 className="text-xl font-semibold mb-6 text-red-600">{title}</h3>
-      {children}
+function ServiceCard({ image, title, desc }: any) {
+  return (
+    <div className="bg-white rounded-xl shadow hover:shadow-lg transition">
+      <img src={image} alt={title} className="h-48 w-full object-cover rounded-t-xl" />
+      <div className="p-6">
+        <h3 className="text-lg font-semibold mb-3 text-red-600">{title}</h3>
+        <p className="text-gray-600 text-sm">{desc}</p>
+      </div>
     </div>
   );
 }
 
-function FormInput({placeholder,type="text",onChange}:any){
-  return(
-    <input
-      type={type}
-      placeholder={placeholder}
-      className="border p-3 w-full rounded mb-4"
-      onChange={(e)=>onChange(e.target.value)}
-    />
-  );
-}
-
-function PrimaryButton({children,onClick}:any){
-  return(
-    <button
-      onClick={onClick}
-      className="bg-red-600 hover:bg-red-700 text-white px-6 py-3 rounded font-semibold"
-    >
-      {children}
-    </button>
-  );
-}
-
-function Metric({title,value}:any){
-  return(
-    <div className="bg-white p-6 rounded-xl shadow text-center">
-      <p className="text-gray-500">{title}</p>
-      <h4 className="text-2xl font-bold text-red-600">{value}</h4>
+function Feature({ title, desc }: any) {
+  return (
+    <div>
+      <h4 className="text-xl font-semibold mb-3">{title}</h4>
+      <p className="text-gray-600">{desc}</p>
     </div>
-  );
-}
-
-function StatusBadge({status}:any){
-  const color =
-    status==="Processing"?"bg-yellow-500":
-    status==="In Transit"?"bg-blue-600":
-    status==="Out for Delivery"?"bg-purple-600":
-    status==="Delivered"?"bg-green-600":
-    status==="Arrived at Hub"?"bg-orange-500":
-    "bg-gray-500";
-
-  return(
-    <span className={`px-3 py-1 rounded-full text-white text-sm font-semibold ${color}`}>
-      {status}
-    </span>
   );
 }
