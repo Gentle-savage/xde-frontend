@@ -19,7 +19,7 @@ export default function AdminWrapper() {
       <div className="min-h-screen flex items-center justify-center bg-slate-900">
         <div className="bg-white p-10 rounded-xl shadow-xl w-96">
           <h2 className="text-2xl font-bold mb-6 text-red-600 text-center">
-            Admin Access
+            XDE Admin Access
           </h2>
 
           <input
@@ -54,9 +54,13 @@ function AdminDashboard() {
   const backend = "https://xde-backend.onrender.com";
 
   const fetchShipments = async () => {
-    const res = await fetch(`${backend}/all-shipments`);
-    const data = await res.json();
-    setShipments(data);
+    try {
+      const res = await fetch(`${backend}/all-shipments`);
+      const data = await res.json();
+      setShipments(data);
+    } catch (err) {
+      console.log("Error fetching shipments");
+    }
   };
 
   useEffect(() => {
@@ -94,7 +98,17 @@ function AdminDashboard() {
     fetchShipments();
   };
 
+  const handleDelete = async (trackingNumber: string) => {
+    await fetch(`${backend}/delete-shipment/${trackingNumber}`, {
+      method: "DELETE",
+    });
+    fetchShipments();
+  };
+
   const total = shipments.length;
+  const delivered = shipments.filter(s => s.status === "Delivered").length;
+  const transit = shipments.filter(s => s.status === "In Transit").length;
+  const processing = shipments.filter(s => s.status === "Processing").length;
 
   return (
     <div className="flex min-h-screen bg-gray-100">
@@ -104,34 +118,30 @@ function AdminDashboard() {
         <h1 className="text-2xl font-bold mb-10">XDE Admin</h1>
 
         <ul className="space-y-4">
-          <li
-            onClick={() => setActiveTab("dashboard")}
-            className={`cursor-pointer ${activeTab === "dashboard" ? "font-bold" : ""}`}
-          >
+          <li onClick={() => setActiveTab("dashboard")}
+              className={`cursor-pointer ${activeTab==="dashboard" && "font-bold"}`}>
             Dashboard
           </li>
-
-          <li
-            onClick={() => setActiveTab("create")}
-            className={`cursor-pointer ${activeTab === "create" ? "font-bold" : ""}`}
-          >
+          <li onClick={() => setActiveTab("create")}
+              className={`cursor-pointer ${activeTab==="create" && "font-bold"}`}>
             Create Shipment
           </li>
-
-          <li
-            onClick={() => setActiveTab("update")}
-            className={`cursor-pointer ${activeTab === "update" ? "font-bold" : ""}`}
-          >
+          <li onClick={() => setActiveTab("update")}
+              className={`cursor-pointer ${activeTab==="update" && "font-bold"}`}>
             Update Shipment
           </li>
-
-          <li
-            onClick={() => setActiveTab("all")}
-            className={`cursor-pointer ${activeTab === "all" ? "font-bold" : ""}`}
-          >
+          <li onClick={() => setActiveTab("all")}
+              className={`cursor-pointer ${activeTab==="all" && "font-bold"}`}>
             All Shipments
           </li>
         </ul>
+
+        <button
+          onClick={() => window.location.reload()}
+          className="mt-10 bg-black text-white px-4 py-2 rounded w-full"
+        >
+          Logout
+        </button>
       </aside>
 
       {/* MAIN CONTENT */}
@@ -139,87 +149,66 @@ function AdminDashboard() {
 
         {activeTab === "dashboard" && (
           <div>
-            <h2 className="text-3xl font-bold mb-6 text-red-600">
+            <h2 className="text-3xl font-bold mb-8 text-red-600">
               Dashboard Overview
             </h2>
-            <div className="bg-white p-6 rounded shadow">
-              <p className="text-lg">Total Shipments: {total}</p>
+
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+              <Metric title="Total Shipments" value={total} />
+              <Metric title="Delivered" value={delivered} />
+              <Metric title="In Transit" value={transit} />
+              <Metric title="Processing" value={processing} />
             </div>
           </div>
         )}
 
         {activeTab === "create" && (
-          <div>
-            <h2 className="text-2xl font-bold mb-6 text-red-600">
+          <Section title="Create Shipment">
+            <FormInput placeholder="Sender Name"
+              onChange={(v)=>setCreateData({...createData,senderName:v})}/>
+            <FormInput placeholder="Receiver Name"
+              onChange={(v)=>setCreateData({...createData,receiverName:v})}/>
+            <FormInput placeholder="Origin"
+              onChange={(v)=>setCreateData({...createData,origin:v})}/>
+            <FormInput placeholder="Destination"
+              onChange={(v)=>setCreateData({...createData,destination:v})}/>
+            <FormInput placeholder="Current Location"
+              onChange={(v)=>setCreateData({...createData,currentLocation:v})}/>
+            <FormInput type="date"
+              onChange={(v)=>setCreateData({...createData,estimatedDelivery:v})}/>
+
+            <PrimaryButton onClick={handleCreate}>
               Create Shipment
-            </h2>
-
-            <div className="bg-white p-6 rounded shadow space-y-4">
-              <input placeholder="Sender Name" className="border p-3 w-full rounded"
-                onChange={(e)=>setCreateData({...createData,senderName:e.target.value})}/>
-              <input placeholder="Receiver Name" className="border p-3 w-full rounded"
-                onChange={(e)=>setCreateData({...createData,receiverName:e.target.value})}/>
-              <input placeholder="Origin" className="border p-3 w-full rounded"
-                onChange={(e)=>setCreateData({...createData,origin:e.target.value})}/>
-              <input placeholder="Destination" className="border p-3 w-full rounded"
-                onChange={(e)=>setCreateData({...createData,destination:e.target.value})}/>
-              <input placeholder="Current Location" className="border p-3 w-full rounded"
-                onChange={(e)=>setCreateData({...createData,currentLocation:e.target.value})}/>
-              <input type="date" className="border p-3 w-full rounded"
-                onChange={(e)=>setCreateData({...createData,estimatedDelivery:e.target.value})}/>
-
-              <button
-                onClick={handleCreate}
-                className="bg-red-600 text-white px-6 py-3 rounded"
-              >
-                Create Shipment
-              </button>
-            </div>
-          </div>
+            </PrimaryButton>
+          </Section>
         )}
 
         {activeTab === "update" && (
-          <div>
-            <h2 className="text-2xl font-bold mb-6 text-red-600">
+          <Section title="Update Shipment">
+            <FormInput placeholder="Tracking Number"
+              onChange={(v)=>setUpdateData({...updateData,trackingNumber:v})}/>
+            <select className="border p-3 w-full rounded mb-4"
+              onChange={(e)=>setUpdateData({...updateData,status:e.target.value})}>
+              <option>Processing</option>
+              <option>In Transit</option>
+              <option>Arrived at Hub</option>
+              <option>Out for Delivery</option>
+              <option>Delivered</option>
+            </select>
+            <FormInput placeholder="Current Location"
+              onChange={(v)=>setUpdateData({...updateData,currentLocation:v})}/>
+            <FormInput placeholder="Status Message"
+              onChange={(v)=>setUpdateData({...updateData,message:v})}/>
+
+            <PrimaryButton onClick={handleUpdate}>
               Update Shipment
-            </h2>
-
-            <div className="bg-white p-6 rounded shadow space-y-4">
-              <input placeholder="Tracking Number" className="border p-3 w-full rounded"
-                onChange={(e)=>setUpdateData({...updateData,trackingNumber:e.target.value})}/>
-
-              <select className="border p-3 w-full rounded"
-                onChange={(e)=>setUpdateData({...updateData,status:e.target.value})}>
-                <option>Processing</option>
-                <option>In Transit</option>
-                <option>Arrived at Hub</option>
-                <option>Out for Delivery</option>
-                <option>Delivered</option>
-              </select>
-
-              <input placeholder="Current Location" className="border p-3 w-full rounded"
-                onChange={(e)=>setUpdateData({...updateData,currentLocation:e.target.value})}/>
-
-              <input placeholder="Status Message" className="border p-3 w-full rounded"
-                onChange={(e)=>setUpdateData({...updateData,message:e.target.value})}/>
-
-              <button
-                onClick={handleUpdate}
-                className="bg-red-600 text-white px-6 py-3 rounded"
-              >
-                Update Shipment
-              </button>
-            </div>
-          </div>
+            </PrimaryButton>
+          </Section>
         )}
 
         {activeTab === "all" && (
-          <div>
-            <h2 className="text-2xl font-bold mb-6 text-red-600">
-              All Shipments
-            </h2>
-
-            <div className="bg-white p-6 rounded shadow overflow-x-auto">
+          <Section title="All Shipments">
+            <div className="overflow-x-auto">
               <table className="w-full text-left">
                 <thead className="bg-red-600 text-white">
                   <tr>
@@ -227,24 +216,97 @@ function AdminDashboard() {
                     <th className="p-3">Sender</th>
                     <th className="p-3">Receiver</th>
                     <th className="p-3">Status</th>
+                    <th className="p-3">Action</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {shipments.map((s, i) => (
+                  {shipments.map((s,i)=>(
                     <tr key={i} className="border-b">
                       <td className="p-3">{s.trackingNumber}</td>
                       <td className="p-3">{s.senderName}</td>
                       <td className="p-3">{s.receiverName}</td>
-                      <td className="p-3">{s.status}</td>
+                      <td className="p-3">
+                        <StatusBadge status={s.status}/>
+                      </td>
+                      <td className="p-3">
+                        <button
+                          onClick={()=>handleDelete(s.trackingNumber)}
+                          className="bg-red-600 text-white px-3 py-1 rounded"
+                        >
+                          Delete
+                        </button>
+                      </td>
                     </tr>
                   ))}
                 </tbody>
               </table>
             </div>
-          </div>
+          </Section>
         )}
+
+        <div className="bg-black text-green-400 p-6 rounded-xl mt-10">
+          <pre className="text-sm">{response}</pre>
+        </div>
 
       </main>
     </div>
+  );
+}
+
+/* COMPONENTS */
+
+function Section({title,children}:any){
+  return(
+    <div className="bg-white p-8 rounded-xl shadow mb-10">
+      <h3 className="text-xl font-semibold mb-6 text-red-600">{title}</h3>
+      {children}
+    </div>
+  );
+}
+
+function FormInput({placeholder,type="text",onChange}:any){
+  return(
+    <input
+      type={type}
+      placeholder={placeholder}
+      className="border p-3 w-full rounded mb-4"
+      onChange={(e)=>onChange(e.target.value)}
+    />
+  );
+}
+
+function PrimaryButton({children,onClick}:any){
+  return(
+    <button
+      onClick={onClick}
+      className="bg-red-600 hover:bg-red-700 text-white px-6 py-3 rounded font-semibold"
+    >
+      {children}
+    </button>
+  );
+}
+
+function Metric({title,value}:any){
+  return(
+    <div className="bg-white p-6 rounded-xl shadow text-center">
+      <p className="text-gray-500">{title}</p>
+      <h4 className="text-2xl font-bold text-red-600">{value}</h4>
+    </div>
+  );
+}
+
+function StatusBadge({status}:any){
+  const color =
+    status==="Processing"?"bg-yellow-500":
+    status==="In Transit"?"bg-blue-600":
+    status==="Out for Delivery"?"bg-purple-600":
+    status==="Delivered"?"bg-green-600":
+    status==="Arrived at Hub"?"bg-orange-500":
+    "bg-gray-500";
+
+  return(
+    <span className={`px-3 py-1 rounded-full text-white text-sm font-semibold ${color}`}>
+      {status}
+    </span>
   );
 }
