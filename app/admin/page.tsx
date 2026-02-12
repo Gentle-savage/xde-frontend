@@ -8,7 +8,7 @@ export default function AdminPage() {
   const [loggedIn, setLoggedIn] = useState(false);
   const [password, setPassword] = useState("");
   const [shipments, setShipments] = useState<any[]>([]);
-  const [createData, setCreateData] = useState<any>({});
+  const [formData, setFormData] = useState<any>({});
 
   const login = async () => {
     const res = await fetch(`${backend}/admin-login`, {
@@ -35,15 +35,24 @@ export default function AdminPage() {
     await fetch(`${backend}/create-shipment`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(createData),
+      body: JSON.stringify(formData),
     });
+
+    alert("Shipment Created");
     fetchShipments();
   };
 
-  const deleteShipment = async (trackingNumber: string) => {
-    await fetch(`${backend}/delete-shipment/${trackingNumber}`, {
-      method: "DELETE",
+  const updateStatus = async (trackingNumber: string) => {
+    await fetch(`${backend}/update-status/${trackingNumber}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        status: formData.status,
+        currentLocation: formData.currentLocation,
+        message: formData.message,
+      }),
     });
+
     fetchShipments();
   };
 
@@ -76,7 +85,7 @@ export default function AdminPage() {
 
       <div className="flex justify-between mb-8">
         <h1 className="text-3xl font-bold text-red-600">
-          XDE Admin Dashboard
+          XDE Enterprise Dashboard
         </h1>
         <button
           onClick={() => setLoggedIn(false)}
@@ -86,59 +95,105 @@ export default function AdminPage() {
         </button>
       </div>
 
-      {/* Create Shipment */}
-      <div className="bg-white p-6 rounded shadow mb-10">
-        <h2 className="text-xl font-semibold mb-4 text-red-600">
+      {/* CREATE SHIPMENT FORM */}
+      <div className="bg-white p-8 rounded shadow mb-12">
+        <h2 className="text-xl font-bold mb-6 text-red-600">
           Create Shipment
         </h2>
-        <input
-          placeholder="Sender Name"
-          className="border p-3 w-full mb-4 rounded"
-          onChange={(e) => setCreateData({ ...createData, senderName: e.target.value })}
-        />
-        <input
-          placeholder="Receiver Name"
-          className="border p-3 w-full mb-4 rounded"
-          onChange={(e) => setCreateData({ ...createData, receiverName: e.target.value })}
-        />
+
+        <div className="grid md:grid-cols-2 gap-6">
+
+          <input placeholder="Sender Name"
+            onChange={(e)=>setFormData({...formData,senderName:e.target.value})}
+            className="border p-3 rounded"/>
+
+          <input placeholder="Sender Address"
+            onChange={(e)=>setFormData({...formData,senderAddress:e.target.value})}
+            className="border p-3 rounded"/>
+
+          <input placeholder="Sender Phone"
+            onChange={(e)=>setFormData({...formData,senderPhone:e.target.value})}
+            className="border p-3 rounded"/>
+
+          <input placeholder="Receiver Name"
+            onChange={(e)=>setFormData({...formData,receiverName:e.target.value})}
+            className="border p-3 rounded"/>
+
+          <input placeholder="Receiver Address"
+            onChange={(e)=>setFormData({...formData,receiverAddress:e.target.value})}
+            className="border p-3 rounded"/>
+
+          <input placeholder="Receiver Phone"
+            onChange={(e)=>setFormData({...formData,receiverPhone:e.target.value})}
+            className="border p-3 rounded"/>
+
+          <input placeholder="Origin"
+            onChange={(e)=>setFormData({...formData,origin:e.target.value})}
+            className="border p-3 rounded"/>
+
+          <input placeholder="Destination"
+            onChange={(e)=>setFormData({...formData,destination:e.target.value})}
+            className="border p-3 rounded"/>
+
+          <input placeholder="Current Location"
+            onChange={(e)=>setFormData({...formData,currentLocation:e.target.value})}
+            className="border p-3 rounded"/>
+
+          <input type="date"
+            onChange={(e)=>setFormData({...formData,estimatedDelivery:e.target.value})}
+            className="border p-3 rounded"/>
+
+        </div>
+
         <button
           onClick={createShipment}
-          className="bg-red-600 text-white px-6 py-3 rounded"
+          className="mt-6 bg-red-600 text-white px-6 py-3 rounded"
         >
-          Create
+          Create Shipment
         </button>
       </div>
 
-      {/* Shipment Table */}
-      <div className="bg-white p-6 rounded shadow">
-        <h2 className="text-xl font-semibold mb-4 text-red-600">
+      {/* ALL SHIPMENTS */}
+      <div className="bg-white p-8 rounded shadow">
+        <h2 className="text-xl font-bold mb-6 text-red-600">
           All Shipments
         </h2>
+
         <table className="w-full">
           <thead className="bg-red-600 text-white">
             <tr>
               <th>Tracking</th>
               <th>Status</th>
-              <th>Action</th>
+              <th>Update</th>
             </tr>
           </thead>
           <tbody>
-            {shipments.map((s, i) => (
+            {shipments.map((s,i)=>(
               <tr key={i} className="border-b">
                 <td>{s.trackingNumber}</td>
                 <td>{s.status}</td>
                 <td>
+                  <select
+                    onChange={(e)=>setFormData({...formData,status:e.target.value})}
+                    className="border p-2 mr-2"
+                  >
+                    <option>Processing</option>
+                    <option>In Transit</option>
+                    <option>Out for Delivery</option>
+                    <option>Delivered</option>
+                  </select>
                   <button
-                    onClick={() => deleteShipment(s.trackingNumber)}
+                    onClick={()=>updateStatus(s.trackingNumber)}
                     className="bg-black text-white px-3 py-1 rounded"
                   >
-                    Delete
+                    Update
                   </button>
                 </td>
               </tr>
             ))}
           </tbody>
         </table>
+
       </div>
 
     </div>
