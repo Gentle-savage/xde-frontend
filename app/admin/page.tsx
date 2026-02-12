@@ -5,21 +5,15 @@ import { useEffect, useState } from "react";
 const backend = "https://xde-backend.onrender.com";
 
 export default function AdminPage() {
-  const [loggedIn, setLoggedIn] = useState(false);
-  const [password, setPassword] = useState("");
   const [shipments, setShipments] = useState<any[]>([]);
-  const [formData, setFormData] = useState<any>({});
-
-  const login = async () => {
-    const res = await fetch(`${backend}/admin-login`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ password }),
-    });
-
-    if (!res.ok) return alert("Invalid password");
-    setLoggedIn(true);
-  };
+  const [form, setForm] = useState({
+    senderName: "",
+    receiverName: "",
+    origin: "",
+    destination: "",
+    status: "Processing",
+    currentLocation: "",
+  });
 
   const fetchShipments = async () => {
     const res = await fetch(`${backend}/all-shipments`);
@@ -28,165 +22,152 @@ export default function AdminPage() {
   };
 
   useEffect(() => {
-    if (loggedIn) fetchShipments();
-  }, [loggedIn]);
+    fetchShipments();
+  }, []);
 
   const createShipment = async () => {
     await fetch(`${backend}/create-shipment`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(formData),
-    });
-
-    alert("Shipment Created");
-    fetchShipments();
-  };
-
-  const updateStatus = async (trackingNumber: string) => {
-    await fetch(`${backend}/update-status/${trackingNumber}`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        status: formData.status,
-        currentLocation: formData.currentLocation,
-        message: formData.message,
-      }),
+      body: JSON.stringify(form),
     });
 
     fetchShipments();
   };
 
-  if (!loggedIn) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-900">
-        <div className="bg-white p-10 rounded-xl shadow w-96">
-          <h2 className="text-2xl font-bold mb-6 text-red-600 text-center">
-            Admin Login
-          </h2>
-          <input
-            type="password"
-            className="border p-3 w-full mb-4 rounded"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-          />
-          <button
-            onClick={login}
-            className="bg-red-600 text-white w-full py-3 rounded"
-          >
-            Login
-          </button>
-        </div>
-      </div>
-    );
-  }
+  const deleteShipment = async (id: string) => {
+    await fetch(`${backend}/delete-shipment/${id}`, {
+      method: "DELETE",
+    });
+
+    fetchShipments();
+  };
 
   return (
-    <div className="p-10 bg-gray-100 min-h-screen">
+    <div className="bg-slate-100 min-h-screen p-10">
 
-      <div className="flex justify-between mb-8">
-        <h1 className="text-3xl font-bold text-red-600">
-          XDE Enterprise Dashboard
+      {/* HEADER */}
+      <div className="flex justify-between items-center mb-10">
+        <h1 className="text-3xl font-bold text-slate-900">
+          XDE Admin Dashboard
         </h1>
         <button
-          onClick={() => setLoggedIn(false)}
-          className="bg-black text-white px-4 py-2 rounded"
+          onClick={() => {
+            localStorage.removeItem("adminToken");
+            window.location.href = "/admin/login";
+          }}
+          className="bg-slate-900 text-white px-4 py-2 rounded"
         >
           Logout
         </button>
       </div>
 
-      {/* CREATE SHIPMENT FORM */}
-      <div className="bg-white p-8 rounded shadow mb-12">
-        <h2 className="text-xl font-bold mb-6 text-red-600">
+      {/* CREATE SHIPMENT */}
+      <div className="bg-white p-8 rounded-xl shadow mb-12">
+        <h2 className="text-xl font-bold mb-6 text-slate-800">
           Create Shipment
         </h2>
 
-        <div className="grid md:grid-cols-2 gap-6">
+        <div className="grid grid-cols-2 gap-4">
+          <input
+            placeholder="Sender Name"
+            className="border p-3 rounded"
+            onChange={(e) =>
+              setForm({ ...form, senderName: e.target.value })
+            }
+          />
+          <input
+            placeholder="Receiver Name"
+            className="border p-3 rounded"
+            onChange={(e) =>
+              setForm({ ...form, receiverName: e.target.value })
+            }
+          />
+          <input
+            placeholder="Origin"
+            className="border p-3 rounded"
+            onChange={(e) =>
+              setForm({ ...form, origin: e.target.value })
+            }
+          />
+          <input
+            placeholder="Destination"
+            className="border p-3 rounded"
+            onChange={(e) =>
+              setForm({ ...form, destination: e.target.value })
+            }
+          />
+          <input
+            placeholder="Current Location"
+            className="border p-3 rounded"
+            onChange={(e) =>
+              setForm({ ...form, currentLocation: e.target.value })
+            }
+          />
 
-          <input placeholder="Sender Name"
-            onChange={(e)=>setFormData({...formData,senderName:e.target.value})}
-            className="border p-3 rounded"/>
-
-          <input placeholder="Sender Address"
-            onChange={(e)=>setFormData({...formData,senderAddress:e.target.value})}
-            className="border p-3 rounded"/>
-
-          <input placeholder="Sender Phone"
-            onChange={(e)=>setFormData({...formData,senderPhone:e.target.value})}
-            className="border p-3 rounded"/>
-
-          <input placeholder="Receiver Name"
-            onChange={(e)=>setFormData({...formData,receiverName:e.target.value})}
-            className="border p-3 rounded"/>
-
-          <input placeholder="Receiver Address"
-            onChange={(e)=>setFormData({...formData,receiverAddress:e.target.value})}
-            className="border p-3 rounded"/>
-
-          <input placeholder="Receiver Phone"
-            onChange={(e)=>setFormData({...formData,receiverPhone:e.target.value})}
-            className="border p-3 rounded"/>
-
-          <input placeholder="Origin"
-            onChange={(e)=>setFormData({...formData,origin:e.target.value})}
-            className="border p-3 rounded"/>
-
-          <input placeholder="Destination"
-            onChange={(e)=>setFormData({...formData,destination:e.target.value})}
-            className="border p-3 rounded"/>
-
-          <input placeholder="Current Location"
-            onChange={(e)=>setFormData({...formData,currentLocation:e.target.value})}
-            className="border p-3 rounded"/>
-
-          <input type="date"
-            onChange={(e)=>setFormData({...formData,estimatedDelivery:e.target.value})}
-            className="border p-3 rounded"/>
-
+          <select
+            className="border p-3 rounded"
+            onChange={(e) =>
+              setForm({ ...form, status: e.target.value })
+            }
+          >
+            <option>Processing</option>
+            <option>In Transit</option>
+            <option>Out for Delivery</option>
+            <option>Delivered</option>
+          </select>
         </div>
 
         <button
           onClick={createShipment}
-          className="mt-6 bg-red-600 text-white px-6 py-3 rounded"
+          className="mt-6 bg-red-600 text-white px-6 py-3 rounded-lg"
         >
           Create Shipment
         </button>
       </div>
 
       {/* ALL SHIPMENTS */}
-      <div className="bg-white p-8 rounded shadow">
-        <h2 className="text-xl font-bold mb-6 text-red-600">
+      <div className="bg-white p-8 rounded-xl shadow">
+        <h2 className="text-xl font-bold mb-6 text-slate-800">
           All Shipments
         </h2>
 
         <table className="w-full">
-          <thead className="bg-red-600 text-white">
-            <tr>
-              <th>Tracking</th>
-              <th>Status</th>
-              <th>Update</th>
+          <thead>
+            <tr className="bg-slate-900 text-white text-left">
+              <th className="p-3">Tracking + Receiver</th>
+              <th className="p-3">Status</th>
+              <th className="p-3">Location</th>
+              <th className="p-3">Action</th>
             </tr>
           </thead>
+
           <tbody>
-            {shipments.map((s,i)=>(
-              <tr key={i} className="border-b">
-                <td>{s.trackingNumber}</td>
-                <td>{s.status}</td>
-                <td>
-                  <select
-                    onChange={(e)=>setFormData({...formData,status:e.target.value})}
-                    className="border p-2 mr-2"
-                  >
-                    <option>Processing</option>
-                    <option>In Transit</option>
-                    <option>Out for Delivery</option>
-                    <option>Delivered</option>
-                  </select>
+            {shipments.map((s) => (
+              <tr key={s._id} className="border-b">
+                <td className="p-3">
+                  <div className="font-semibold text-slate-900">
+                    {s.trackingNumber}
+                  </div>
+                  <div className="text-sm text-gray-500">
+                    Receiver: {s.receiverName}
+                  </div>
+                </td>
+
+                <td className="p-3 text-slate-700">
+                  {s.status}
+                </td>
+
+                <td className="p-3 text-slate-700">
+                  {s.currentLocation}
+                </td>
+
+                <td className="p-3">
                   <button
-                    onClick={()=>updateStatus(s.trackingNumber)}
-                    className="bg-black text-white px-3 py-1 rounded"
+                    onClick={() => deleteShipment(s._id)}
+                    className="bg-red-600 text-white px-4 py-1 rounded"
                   >
-                    Update
+                    Delete
                   </button>
                 </td>
               </tr>
@@ -195,7 +176,6 @@ export default function AdminPage() {
         </table>
 
       </div>
-
     </div>
   );
 }
