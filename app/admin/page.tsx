@@ -1,133 +1,140 @@
 "use client";
 
-import { useState } from "react";
-import dynamic from "next/dynamic";
-import "leaflet/dist/leaflet.css";
+import { useState, useEffect } from "react";
 
-const MapContainer = dynamic(
-  () => import("react-leaflet").then((mod) => mod.MapContainer),
-  { ssr: false }
-);
-const TileLayer = dynamic(
-  () => import("react-leaflet").then((mod) => mod.TileLayer),
-  { ssr: false }
-);
+const API_URL = "https://xde-backend.onrender.com";
 
-const backend = "https://xde-backend.onrender.com";
+export default function AdminPage() {
+  const [shipments, setShipments] = useState<any[]>([]);
+  const [form, setForm] = useState({
+    trackingNumber: "",
+    senderName: "",
+    senderAddress: "",
+    senderPhone: "",
+    receiverName: "",
+    receiverAddress: "",
+    receiverPhone: "",
+    origin: "",
+    destination: "",
+    status: "Processing",
+    currentLocation: "",
+    estimatedDelivery: "",
+  });
 
-export default function Home() {
-  const [tracking, setTracking] = useState("");
-  const [shipment, setShipment] = useState<any>(null);
+  useEffect(() => {
+    fetchShipments();
+  }, []);
 
-  const trackShipment = async () => {
-    const res = await fetch(`${backend}/track/${tracking}`);
-    if (!res.ok) return alert("Tracking number not found");
+  const fetchShipments = async () => {
+    const res = await fetch(`${API_URL}/shipments`);
     const data = await res.json();
-    setShipment(data);
+    setShipments(data);
+  };
+
+  const createShipment = async () => {
+    await fetch(`${API_URL}/create-shipment`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(form),
+    });
+
+    fetchShipments();
+  };
+
+  const deleteShipment = async (id: string) => {
+    await fetch(`${API_URL}/delete-shipment/${id}`, {
+      method: "DELETE",
+    });
+
+    fetchShipments();
   };
 
   return (
-    <div className="bg-white text-gray-900">
+    <div style={{ padding: 40, fontFamily: "Arial" }}>
+      <h1 style={{ color: "#1e293b" }}>XDE Admin Dashboard</h1>
 
-      {/* NAVBAR WITH MEGA MENU */}
-      <nav className="flex justify-between items-center px-12 py-6 border-b relative">
-        <h1 className="text-2xl font-bold text-purple-700">
-          XDE Logistics
-        </h1>
+      {/* CREATE SHIPMENT */}
+      <div style={{ marginTop: 40 }}>
+        <h2>Create Shipment</h2>
 
-        <div className="group relative">
-          <button className="font-medium hover:text-purple-700">
-            Services
-          </button>
-
-          <div className="absolute hidden group-hover:block bg-white shadow-xl p-10 mt-4 w-[600px] rounded-xl transition-all duration-300">
-            <div className="grid grid-cols-2 gap-8 text-sm">
-              <div>
-                <h4 className="font-semibold mb-2 text-purple-700">Freight</h4>
-                <p>Air Freight</p>
-                <p>Sea Freight</p>
-                <p>Road Transport</p>
-              </div>
-              <div>
-                <h4 className="font-semibold mb-2 text-purple-700">Logistics</h4>
-                <p>Warehousing</p>
-                <p>Supply Chain</p>
-                <p>Express Delivery</p>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div className="space-x-8 text-sm font-medium">
-          <a href="/login">Customer Login</a>
-          <a href="/careers">Careers</a>
-          <a href="/contact">Contact</a>
-          <a href="/admin" className="bg-purple-700 text-white px-4 py-2 rounded">
-            Admin
-          </a>
-        </div>
-      </nav>
-
-      {/* HERO */}
-      <section className="px-12 py-28 bg-gray-50 transition-all duration-700">
-        <div className="max-w-6xl mx-auto grid md:grid-cols-2 gap-16 items-center">
-
-          <div className="animate-fadeIn">
-            <h2 className="text-5xl font-bold leading-tight mb-6">
-              Global Delivery Without Limits
-            </h2>
-
-            <p className="text-gray-600 mb-8 text-lg">
-              Enterprise-level logistics and freight solutions trusted
-              by businesses worldwide.
-            </p>
-
-            <div className="flex gap-4">
-              <input
-                placeholder="Enter Tracking Number"
-                className="flex-1 border p-4 rounded-lg"
-                onChange={(e) => setTracking(e.target.value)}
-              />
-              <button
-                onClick={trackShipment}
-                className="bg-purple-700 text-white px-6 py-4 rounded-lg"
-              >
-                Track
-              </button>
-            </div>
-          </div>
-
-          <img
-            src="https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d?auto=format&fit=crop&w=1000&q=80"
-            className="rounded-xl shadow-xl"
+        {Object.keys(form).map((key) => (
+          <input
+            key={key}
+            placeholder={key}
+            value={(form as any)[key]}
+            onChange={(e) =>
+              setForm({ ...form, [key]: e.target.value })
+            }
+            style={{
+              display: "block",
+              marginBottom: 10,
+              padding: 10,
+              width: "400px",
+            }}
           />
-        </div>
-      </section>
+        ))}
 
-      {/* LIVE SERVICE REGION MAP */}
-      <section className="py-24">
-        <div className="max-w-6xl mx-auto">
-          <h3 className="text-3xl font-bold text-purple-700 mb-8 text-center">
-            Global Service Coverage
-          </h3>
+        <button
+          onClick={createShipment}
+          style={{
+            padding: 12,
+            backgroundColor: "#0f172a",
+            color: "white",
+            border: "none",
+            borderRadius: 6,
+            cursor: "pointer",
+          }}
+        >
+          Create Shipment
+        </button>
+      </div>
 
-          <MapContainer
-            center={[20, 0]}
-            zoom={2}
-            style={{ height: "400px", width: "100%" }}
-          >
-            <TileLayer
-              url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-            />
-          </MapContainer>
-        </div>
-      </section>
+      {/* ALL SHIPMENTS */}
+      <div style={{ marginTop: 60 }}>
+        <h2>All Shipments</h2>
 
-      {/* FOOTER */}
-      <footer className="bg-gray-900 text-white py-10 text-center">
-        © 2015 XDE Logistics Group. All rights reserved.
-      </footer>
+        <table
+          style={{
+            width: "100%",
+            marginTop: 20,
+            borderCollapse: "collapse",
+          }}
+        >
+          <thead>
+            <tr style={{ backgroundColor: "#0f172a", color: "white" }}>
+              <th style={{ padding: 10 }}>Tracking</th>
+              <th>Receiver</th>
+              <th>Status</th>
+              <th>Action</th>
+            </tr>
+          </thead>
 
+          <tbody>
+            {shipments.map((s) => (
+              <tr key={s._id}>
+                <td style={{ padding: 10 }}>{s.trackingNumber}</td>
+                <td>{s.receiverName}</td>
+                <td>{s.status}</td>
+                <td>
+                  <button
+                    onClick={() => deleteShipment(s._id)}
+                    style={{
+                      padding: 8,
+                      backgroundColor: "red",
+                      color: "white",
+                      border: "none",
+                      borderRadius: 4,
+                      cursor: "pointer",
+                    }}
+                  >
+                    Delete
+                  </button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 }
