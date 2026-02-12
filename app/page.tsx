@@ -2,117 +2,72 @@
 
 import { useState } from "react";
 
-const backend = "https://xde-backend.onrender.com";
+export default function Home() {
+  const [trackingNumber, setTrackingNumber] = useState("");
+  const [shipment, setShipment] = useState<any>(null);
+  const [error, setError] = useState("");
 
-export default function AdminPage() {
-  const [loggedIn, setLoggedIn] = useState(false);
-  const [password, setPassword] = useState("");
-  const [oldPassword, setOldPassword] = useState("");
-  const [newPassword, setNewPassword] = useState("");
-  const [message, setMessage] = useState("");
+  const backend = "https://xde-backend.onrender.com";
 
-  const handleLogin = async () => {
-    const res = await fetch(`${backend}/admin-login`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ password }),
-    });
+  const trackShipment = async () => {
+    try {
+      const res = await fetch(`${backend}/track/${trackingNumber}`);
+      const data = await res.json();
 
-    if (!res.ok) {
-      alert("Invalid password");
-      return;
+      if (!res.ok) {
+        setError("Tracking number not found");
+        setShipment(null);
+      } else {
+        setShipment(data);
+        setError("");
+      }
+    } catch {
+      setError("Server error");
     }
-
-    setLoggedIn(true);
   };
-
-  const handleChangePassword = async () => {
-    const res = await fetch(`${backend}/admin-change-password`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ oldPassword, newPassword }),
-    });
-
-    const data = await res.json();
-    setMessage(data.message);
-  };
-
-  if (!loggedIn) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-900">
-        <div className="bg-white p-10 rounded-xl shadow w-96">
-          <h2 className="text-2xl font-bold mb-6 text-red-600 text-center">
-            Admin Login
-          </h2>
-
-          <input
-            type="password"
-            placeholder="Enter Password"
-            className="border p-3 w-full mb-4 rounded"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-          />
-
-          <button
-            onClick={handleLogin}
-            className="bg-red-600 hover:bg-red-700 text-white w-full py-3 rounded"
-          >
-            Login
-          </button>
-        </div>
-      </div>
-    );
-  }
 
   return (
-    <div className="min-h-screen bg-gray-100 p-10">
+    <div className="bg-gray-100 min-h-screen">
 
-      <div className="flex justify-between items-center mb-10">
-        <h1 className="text-3xl font-bold text-red-600">
-          Admin Dashboard
-        </h1>
-
-        <button
-          onClick={() => setLoggedIn(false)}
-          className="bg-black text-white px-4 py-2 rounded"
-        >
-          Logout
-        </button>
-      </div>
-
-      {/* CHANGE PASSWORD SECTION */}
-      <div className="bg-white p-8 rounded-xl shadow max-w-md">
-        <h2 className="text-xl font-semibold mb-6 text-red-600">
-          Change Password
-        </h2>
-
-        <input
-          type="password"
-          placeholder="Old Password"
-          className="border p-3 w-full mb-4 rounded"
-          value={oldPassword}
-          onChange={(e) => setOldPassword(e.target.value)}
+      <section className="relative h-[600px] flex items-center justify-center text-white text-center">
+        <img
+          src="https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d?auto=format&fit=crop&w=1600&q=80"
+          className="absolute inset-0 w-full h-full object-cover"
+          alt="Logistics"
         />
+        <div className="absolute inset-0 bg-black/60"></div>
 
-        <input
-          type="password"
-          placeholder="New Password"
-          className="border p-3 w-full mb-4 rounded"
-          value={newPassword}
-          onChange={(e) => setNewPassword(e.target.value)}
-        />
+        <div className="relative z-10 max-w-4xl px-6">
+          <h1 className="text-5xl font-bold mb-6">
+            XDE Logistics
+          </h1>
+          <p className="text-xl mb-8">
+            Nationwide Fast & Reliable Delivery Across the World
+          </p>
 
-        <button
-          onClick={handleChangePassword}
-          className="bg-red-600 hover:bg-red-700 text-white w-full py-3 rounded"
-        >
-          Update Password
-        </button>
+          <div className="bg-white p-6 rounded-xl shadow-xl flex flex-col md:flex-row gap-4">
+            <input
+              type="text"
+              placeholder="Enter Tracking Number"
+              className="flex-1 border p-3 rounded text-black"
+              value={trackingNumber}
+              onChange={(e) => setTrackingNumber(e.target.value)}
+            />
+            <button
+              onClick={trackShipment}
+              className="bg-red-600 text-white px-6 py-3 rounded font-semibold"
+            >
+              Track Package
+            </button>
+          </div>
 
-        {message && (
-          <p className="mt-4 text-green-600">{message}</p>
-        )}
-      </div>
+          {error && <p className="text-red-300 mt-4">{error}</p>}
+        </div>
+      </section>
+
+      <footer className="bg-gray-900 text-white py-8 text-center">
+        <p>© 2015 XDE Logistics Group. All rights reserved.</p>
+      </footer>
 
     </div>
   );
